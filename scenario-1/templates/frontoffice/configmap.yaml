@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  config.json: >
+    {
+      "devopsbeerUrl": "https://api.scenario1.devopsbeerer.local",
+      "version": "v1.0.0",
+      "environment": "polayground",
+      "organizationName": "DevopsDays"
+    }
+
+  auth.json: >
+    {
+        "authority": "https://sso.devopsbeerer.local/realms/devopsbeerer",
+        "redirectUrl": "https://app.scenario1.devopsbeerer.local/callback",
+        "postLogoutRedirectUri": "https://app.scenario1.devopsbeerer.local",
+        "clientId": "scenario-1-app",
+        "secureRoutes": [
+            "https://api.scenario1.devopsbeerer.local/"
+        ],
+        "scopes": [
+            "openid",
+            "profile",
+            "email",
+            "Beers.Read.All",
+            "Beers.Read"
+        ]
+    }

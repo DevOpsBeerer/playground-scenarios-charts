@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: devopsbeerer
+spec:
+  podSelector:
+    matchLabels:
+      app: scenario-1-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        # Allow traffic from ingress controller namespace
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow SSO communication (headless SSO)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: sso
+      ports:
+        - protocol: TCP
+          port: 8080

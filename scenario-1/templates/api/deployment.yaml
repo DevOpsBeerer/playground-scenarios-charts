@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: scenario-1-api
+  name: scenario-1-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-1-api
+  template:
+    metadata:
+      labels:
+        app: scenario-1-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # Common node user ID
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+          - name: timeout
+            value: "2"
+          - name: attempts
+            value: "3"
+          - name: single-request-reopen
+          - name: no-tld-query
+      containers:
+        - image: rg.fr-par.scw.cloud/devopsbeerer/api:1.0.0
+          imagePullPolicy: Always
+          name: api
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=96" # Limit memory usage
+          envFrom:
+            - configMapRef:
+                name: api-config
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: node-cache
+              mountPath: /home/node/.npm
+            - name: app-tmp
+              mountPath: /app/tmp
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 15"]
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      # Graceful termination
+      terminationGracePeriodSeconds: 30
+
+      volumes:
+        # EmptyDir volumes for writable directories
+        - name: tmp
+          emptyDir: {}
+        - name: node-cache
+          emptyDir: {}
+        - name: app-tmp
+          emptyDir: {}

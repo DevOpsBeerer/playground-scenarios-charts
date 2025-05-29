@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: scenario-1-app
+  name: scenario-1-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-1-app
+  template:
+    metadata:
+      labels:
+        app: scenario-1-app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101 # nginx user in most nginx containers
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      dnsPolicy: ClusterFirst
+      containers:
+        - image: rg.fr-par.scw.cloud/devopsbeerer/frontoffice:2.0.0
+          imagePullPolicy: Always
+          name: frontoffice
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "125m"
+            limits:
+              memory: "64Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: config
+              mountPath: "/usr/share/nginx/html/config.json"
+              subPath: "config.json"
+              readOnly: true
+            - name: config
+              mountPath: "/usr/share/nginx/html/auth.json"
+              subPath: "auth.json"
+              readOnly: true
+            # Nginx needs write access to these directories
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: nginx-tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: app-config
+            items:
+              - key: "config.json"
+                path: "config.json"
+              - key: "auth.json"
+                path: "auth.json"
+        # EmptyDir volumes for nginx writable directories
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: nginx-tmp
+          emptyDir: {}
