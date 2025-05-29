@@ -1,0 +1,14 @@
+{{- if .Values.api.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.api.name }}-config
+  labels:
+    {{- include "scenario-2.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+data:
+  KEYCLOAK_URL: {{ .Values.sso.url }}
+  KEYCLOAK_AUDIENCE: {{ .Values.api.config.audience }}
+  KEYCLOAK_REALM: {{ .Values.sso.realm }}
+  NODE_ENV: {{ .Values.api.config.nodeEnv }}
+{{- end }}

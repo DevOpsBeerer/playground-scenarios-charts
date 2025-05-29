@@ -1,0 +1,83 @@
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.api.name }}
+  labels:
+    {{- include "scenario-2.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "scenario-2.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "scenario-2.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+        app: {{ .Values.api.name }}
+    spec:
+      securityContext:
+        {{- include "scenario-2.podSecurityContext" . | nindent 8 }}
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      {{- include "scenario-2.dnsConfig" . | nindent 6 }}
+      containers:
+        - name: api
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          securityContext:
+            {{- include "scenario-2.containerSecurityContext" . | nindent 12 }}
+            runAsUser: 1000
+            runAsGroup: 1000
+          env:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=96"
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.api.name }}-config
+          ports:
+            - containerPort: {{ .Values.api.service.port }}
+              protocol: TCP
+              name: http
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: node-cache
+              mountPath: /home/node/.npm
+            - name: app-tmp
+              mountPath: /app/tmp
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 15"]
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.liveness.path }}
+              port: {{ .Values.api.service.port }}
+            initialDelaySeconds: {{ .Values.api.healthCheck.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.liveness.periodSeconds }}
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.readiness.path }}
+              port: {{ .Values.api.service.port }}
+            initialDelaySeconds: {{ .Values.api.healthCheck.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.readiness.periodSeconds }}
+            timeoutSeconds: 5
+            failureThreshold: 3
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: node-cache
+          emptyDir: {}
+        - name: app-tmp
+          emptyDir: {}
+{{- end }}

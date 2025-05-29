@@ -1,0 +1,5 @@
+{{- if and .Values.api.enabled .Values.api.ingress.enabled }}
+{{- $config := .Values.api.ingress }}
+{{- $_ := set $config "servicePort" .Values.api.service.port }}
+{{- include "scenario-2.ingress" (dict "component" "api" "config" $config "root" .) }}
+{{- end }}

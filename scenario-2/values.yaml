@@ -1,0 +1,206 @@
+# DevopsBEERer Scenario 1 - Basic SPA with OIDC
+# Default values for scenario-2
+
+global:
+  domain: devopsbeerer.local
+  environment: development
+  imageRegistry: rg.fr-par.scw.cloud/devopsbeerer
+  name: scenario-2
+
+# Common settings
+replicaCount: 1
+nameOverride: ""
+fullnameOverride: ""
+
+# Keycloak/SSO Configuration
+sso:
+  url: http://sso-keycloak-headless.sso.svc.cluster.local:8080
+  realm: devopsbeerer
+  publicUrl: https://sso.devopsbeerer.local
+
+# API Configuration
+api:
+  enabled: true
+  name: scenario-2-api
+  image:
+    repository: api
+    tag: "1.0.0"
+    pullPolicy: Always
+
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "250m"
+    limits:
+      memory: "128Mi"
+      cpu: "500m"
+
+  service:
+    port: 3000
+    type: ClusterIP
+
+  ingress:
+    enabled: true
+    name: scenario-2-api
+    host: api.scenario2.devopsbeerer.local
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: "ca-cluster-issuer"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+  config:
+    audience: scenario-2-api
+    nodeEnv: development
+
+  healthCheck:
+    liveness:
+      path: /health/liveness
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readiness:
+      path: /health/readiness
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# Frontend Configuration
+frontoffice:
+  enabled: true
+  name: scenario-2-app
+  image:
+    repository: frontoffice
+    tag: "2.0.0"
+    pullPolicy: Always
+
+  resources:
+    requests:
+      memory: "32Mi"
+      cpu: "125m"
+    limits:
+      memory: "64Mi"
+      cpu: "250m"
+
+  service:
+    port: 8080
+    type: ClusterIP
+
+  ingress:
+    enabled: true
+    name: scenario-2-app
+    host: app.scenario2.devopsbeerer.local
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: "ca-cluster-issuer"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+  config:
+    version: "v1.0.0"
+    environment: "playground"
+    organizationName: "DevopsDays"
+    clientId: scenario-2-app
+    scopes:
+      - openid
+      - profile
+      - email
+      - Beers.Read.All
+      - Beers.Read
+
+  healthCheck:
+    liveness:
+      path: /
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readiness:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+# Backoffice Configuration
+backoffice:
+  enabled: true
+  name: scenario-2-bo
+  image:
+    repository: backoffice
+    tag: "1.0.2"
+    pullPolicy: Always
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "500m"
+    limits:
+      memory: "512Mi"
+      cpu: "1"
+
+  service:
+    port: 5000
+    type: ClusterIP
+
+  ingress:
+    enabled: true
+    name: scenario-2-app
+    host: admin.scenario2.devopsbeerer.local
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: "ca-cluster-issuer"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+  config:
+    version: "v1.0.0"
+    environment: "playground"
+    organizationName: "DevopsDays"
+    clientId: scenario-2-app
+    scopes:
+      - openid
+      - profile
+      - email
+      - Beers.Read.All
+      - Beers.Read
+      - Beers.Write
+
+  healthCheck:
+    liveness:
+      path: /
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readiness:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+
+
+# Security Configuration
+security:
+  networkPolicy:
+    enabled: true
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+# DNS Configuration
+dnsConfig:
+  options:
+    - name: ndots
+      value: "1"
+    - name: timeout
+      value: "2"
+    - name: attempts
+      value: "3"
+    - name: single-request-reopen
+    - name: no-tld-query

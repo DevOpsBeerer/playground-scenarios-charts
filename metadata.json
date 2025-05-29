@@ -4,6 +4,11 @@
             "name": "Scenario 1",
             "id": "scenario-1",
             "description": "Basic OIDC Flow with SPA and API"
+        },
+        {
+            "name": "Scenario 2",
+            "id": "scenario-2",
+            "description": "Back Office management"
         }
     ]
 }

@@ -1,0 +1,88 @@
+{{- if .Values.frontoffice.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.frontoffice.name }}
+  labels:
+    {{- include "scenario-2.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontoffice
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "scenario-2.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontoffice
+  template:
+    metadata:
+      labels:
+        {{- include "scenario-2.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontoffice
+        app: {{ .Values.frontoffice.name }}
+    spec:
+      securityContext:
+        {{- include "scenario-2.podSecurityContext" . | nindent 8 }}
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+      {{- include "scenario-2.dnsConfig" . | nindent 6 }}
+      containers:
+        - name: frontoffice
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.frontoffice.image.repository }}:{{ .Values.frontoffice.image.tag }}"
+          imagePullPolicy: {{ .Values.frontoffice.image.pullPolicy }}
+          securityContext:
+            {{- include "scenario-2.containerSecurityContext" . | nindent 12 }}
+            runAsUser: 101
+            runAsGroup: 101
+          ports:
+            - containerPort: {{ .Values.frontoffice.service.port }}
+              protocol: TCP
+              name: http
+          resources:
+            {{- toYaml .Values.frontoffice.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: "/usr/share/nginx/html/config.json"
+              subPath: "config.json"
+              readOnly: true
+            - name: config
+              mountPath: "/usr/share/nginx/html/auth.json"
+              subPath: "auth.json"
+              readOnly: true
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: nginx-tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.frontoffice.healthCheck.liveness.path }}
+              port: {{ .Values.frontoffice.service.port }}
+            initialDelaySeconds: {{ .Values.frontoffice.healthCheck.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.frontoffice.healthCheck.liveness.periodSeconds }}
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.frontoffice.healthCheck.readiness.path }}
+              port: {{ .Values.frontoffice.service.port }}
+            initialDelaySeconds: {{ .Values.frontoffice.healthCheck.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.frontoffice.healthCheck.readiness.periodSeconds }}
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Values.frontoffice.name }}-config
+            items:
+              - key: "config.json"
+                path: "config.json"
+              - key: "auth.json"
+                path: "auth.json"
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: nginx-tmp
+          emptyDir: {}
+{{- end }}

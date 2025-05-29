@@ -1,0 +1,19 @@
+{{- if .Values.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.api.name }}
+  labels:
+    {{- include "scenario-2.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - port: {{ .Values.api.service.port }}
+      targetPort: {{ .Values.api.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "scenario-2.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+{{- end }}
