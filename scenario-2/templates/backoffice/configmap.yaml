@@ -2,28 +2,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.frontoffice.name }}-config
+  name: {{ .Values.backoffice.name }}-config
   labels:
     {{- include "scenario-2.labels" . | nindent 4 }}
     app.kubernetes.io/component: frontoffice
 data:
-  config.json: >
-    {
-      "devopsbeerUrl": "{{ include "scenario-2.apiUrl" . }}",
-      "version": "{{ .Values.frontoffice.config.version }}",
-      "environment": "{{ .Values.frontoffice.config.environment }}",
-      "organizationName": "{{ .Values.frontoffice.config.organizationName }}"
-    }
-
-  auth.json: >
-    {
-        "authority": "{{ include "scenario-2.ssoPublicUrl" . }}/realms/{{ .Values.sso.realm }}",
-        "redirectUrl": "https://{{ .Values.frontoffice.ingress.host }}/callback",
-        "postLogoutRedirectUri": "https://{{ .Values.frontoffice.ingress.host }}",
-        "clientId": "{{ .Values.frontoffice.config.clientId }}",
-        "secureRoutes": [
-            "{{ include "scenario-2.apiUrl" . }}/"
-        ],
-        "scopes": {{ .Values.frontoffice.config.scopes | toJson }}
-    }
+  KEYCLOAK_ISSUER: "{{ include "scenario-2.ssoPublicUrl" . }}/realms/{{ .Values.sso.realm }}",
 {{- end }}

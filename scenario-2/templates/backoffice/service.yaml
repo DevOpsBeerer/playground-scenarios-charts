@@ -1,19 +1,19 @@
-{{- if .Values.frontoffice.enabled }}
+{{- if .Values.backoffice.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.frontoffice.name }}
+  name: {{ .Values.backoffice.name }}
   labels:
     {{- include "scenario-2.labels" . | nindent 4 }}
-    app.kubernetes.io/component: frontoffice
+    app.kubernetes.io/component: backoffice
 spec:
-  type: {{ .Values.frontoffice.service.type }}
+  type: {{ .Values.backoffice.service.type }}
   ports:
-    - port: {{ .Values.frontoffice.service.port }}
-      targetPort: {{ .Values.frontoffice.service.port }}
+    - port: {{ .Values.backoffice.service.port }}
+      targetPort: {{ .Values.backoffice.service.port }}
       protocol: TCP
       name: http
   selector:
     {{- include "scenario-2.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: frontoffice
+    app.kubernetes.io/component: backoffice
 {{- end }}

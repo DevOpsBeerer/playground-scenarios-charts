@@ -1,23 +1,23 @@
-{{- if .Values.frontoffice.enabled }}
+{{- if .Values.backoffice.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.frontoffice.name }}
+  name: {{ .Values.backoffice.name }}
   labels:
     {{- include "scenario-2.labels" . | nindent 4 }}
-    app.kubernetes.io/component: frontoffice
+    app.kubernetes.io/component: backoffice
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "scenario-2.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: frontoffice
+      app.kubernetes.io/component: backoffice
   template:
     metadata:
       labels:
         {{- include "scenario-2.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: frontoffice
-        app: {{ .Values.frontoffice.name }}
+        app.kubernetes.io/component: backoffice
+        app: {{ .Values.backoffice.name }}
     spec:
       securityContext:
         {{- include "scenario-2.podSecurityContext" . | nindent 8 }}
@@ -26,19 +26,19 @@ spec:
         fsGroup: 101
       {{- include "scenario-2.dnsConfig" . | nindent 6 }}
       containers:
-        - name: frontoffice
-          image: "{{ .Values.global.imageRegistry }}/{{ .Values.frontoffice.image.repository }}:{{ .Values.frontoffice.image.tag }}"
-          imagePullPolicy: {{ .Values.frontoffice.image.pullPolicy }}
+        - name: backoffice
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.backoffice.image.repository }}:{{ .Values.backoffice.image.tag }}"
+          imagePullPolicy: {{ .Values.backoffice.image.pullPolicy }}
           securityContext:
             {{- include "scenario-2.containerSecurityContext" . | nindent 12 }}
             runAsUser: 101
             runAsGroup: 101
           ports:
-            - containerPort: {{ .Values.frontoffice.service.port }}
+            - containerPort: {{ .Values.backoffice.service.port }}
               protocol: TCP
               name: http
           resources:
-            {{- toYaml .Values.frontoffice.resources | nindent 12 }}
+            {{- toYaml .Values.backoffice.resources | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: "/usr/share/nginx/html/config.json"
@@ -56,24 +56,24 @@ spec:
               mountPath: /tmp
           livenessProbe:
             httpGet:
-              path: {{ .Values.frontoffice.healthCheck.liveness.path }}
-              port: {{ .Values.frontoffice.service.port }}
-            initialDelaySeconds: {{ .Values.frontoffice.healthCheck.liveness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.frontoffice.healthCheck.liveness.periodSeconds }}
+              path: {{ .Values.backoffice.healthCheck.liveness.path }}
+              port: {{ .Values.backoffice.service.port }}
+            initialDelaySeconds: {{ .Values.backoffice.healthCheck.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backoffice.healthCheck.liveness.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: {{ .Values.frontoffice.healthCheck.readiness.path }}
-              port: {{ .Values.frontoffice.service.port }}
-            initialDelaySeconds: {{ .Values.frontoffice.healthCheck.readiness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.frontoffice.healthCheck.readiness.periodSeconds }}
+              path: {{ .Values.backoffice.healthCheck.readiness.path }}
+              port: {{ .Values.backoffice.service.port }}
+            initialDelaySeconds: {{ .Values.backoffice.healthCheck.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backoffice.healthCheck.readiness.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
       volumes:
         - name: config
           configMap:
-            name: {{ .Values.frontoffice.name }}-config
+            name: {{ .Values.backoffice.name }}-config
             items:
               - key: "config.json"
                 path: "config.json"

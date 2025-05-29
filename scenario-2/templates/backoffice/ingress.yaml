@@ -1,5 +1,5 @@
-{{- if and .Values.frontoffice.enabled .Values.frontoffice.ingress.enabled }}
-{{- $config := .Values.frontoffice.ingress }}
-{{- $_ := set $config "servicePort" .Values.frontoffice.service.port }}
-{{- include "scenario-2.ingress" (dict "component" "frontoffice" "config" $config "root" .) }}
+{{- if and .Values.backoffice.enabled .Values.backoffice.ingress.enabled }}
+{{- $config := .Values.backoffice.ingress }}
+{{- $_ := set $config "servicePort" .Values.backoffice.service.port }}
+{{- include "scenario-2.ingress" (dict "component" "backoffice" "config" $config "root" .) }}
 {{- end }}
