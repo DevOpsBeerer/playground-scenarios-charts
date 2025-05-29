@@ -1,51 +1,44 @@
+{{- if .Values.frontoffice.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: {{ .Values.frontoffice.name }}
   labels:
-    app: scenario-1-app
-  name: scenario-1-app
+    {{- include "scenario-1.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontoffice
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: scenario-1-app
+      {{- include "scenario-1.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontoffice
   template:
     metadata:
       labels:
-        app: scenario-1-app
+        {{- include "scenario-1.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontoffice
+        app: {{ .Values.frontoffice.name }}
     spec:
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 101 # nginx user in most nginx containers
+        {{- include "scenario-1.podSecurityContext" . | nindent 8 }}
+        runAsUser: 101
         runAsGroup: 101
         fsGroup: 101
-        seccompProfile:
-          type: RuntimeDefault
-      dnsPolicy: ClusterFirst
+      {{- include "scenario-1.dnsConfig" . | nindent 6 }}
       containers:
-        - image: rg.fr-par.scw.cloud/devopsbeerer/frontoffice:2.0.0
-          imagePullPolicy: Always
-          name: frontoffice
+        - name: frontoffice
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.frontoffice.image.repository }}:{{ .Values.frontoffice.image.tag }}"
+          imagePullPolicy: {{ .Values.frontoffice.image.pullPolicy }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
+            {{- include "scenario-1.containerSecurityContext" . | nindent 12 }}
             runAsUser: 101
             runAsGroup: 101
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
           ports:
-            - containerPort: 8080
+            - containerPort: {{ .Values.frontoffice.service.port }}
+              protocol: TCP
+              name: http
           resources:
-            requests:
-              memory: "32Mi"
-              cpu: "125m"
-            limits:
-              memory: "64Mi"
-              cpu: "250m"
+            {{- toYaml .Values.frontoffice.resources | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: "/usr/share/nginx/html/config.json"
@@ -55,7 +48,6 @@ spec:
               mountPath: "/usr/share/nginx/html/auth.json"
               subPath: "auth.json"
               readOnly: true
-            # Nginx needs write access to these directories
             - name: nginx-cache
               mountPath: /var/cache/nginx
             - name: nginx-run
@@ -64,34 +56,33 @@ spec:
               mountPath: /tmp
           livenessProbe:
             httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 30
+              path: {{ .Values.frontoffice.healthCheck.liveness.path }}
+              port: {{ .Values.frontoffice.service.port }}
+            initialDelaySeconds: {{ .Values.frontoffice.healthCheck.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.frontoffice.healthCheck.liveness.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
-
           readinessProbe:
             httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
+              path: {{ .Values.frontoffice.healthCheck.readiness.path }}
+              port: {{ .Values.frontoffice.service.port }}
+            initialDelaySeconds: {{ .Values.frontoffice.healthCheck.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.frontoffice.healthCheck.readiness.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
       volumes:
         - name: config
           configMap:
-            name: app-config
+            name: {{ .Values.frontoffice.name }}-config
             items:
               - key: "config.json"
                 path: "config.json"
               - key: "auth.json"
                 path: "auth.json"
-        # EmptyDir volumes for nginx writable directories
         - name: nginx-cache
           emptyDir: {}
         - name: nginx-run
           emptyDir: {}
         - name: nginx-tmp
           emptyDir: {}
+{{- end }}

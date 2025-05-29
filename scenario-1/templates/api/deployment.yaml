@@ -1,68 +1,50 @@
+{{- if .Values.api.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: {{ .Values.api.name }}
   labels:
-    app: scenario-1-api
-  name: scenario-1-api
+    {{- include "scenario-1.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: scenario-1-api
+      {{- include "scenario-1.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
   template:
     metadata:
       labels:
-        app: scenario-1-api
+        {{- include "scenario-1.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+        app: {{ .Values.api.name }}
     spec:
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000 # Common node user ID
+        {{- include "scenario-1.podSecurityContext" . | nindent 8 }}
+        runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
-
-      dnsPolicy: ClusterFirst
-      dnsConfig:
-        options:
-          - name: ndots
-            value: "1"
-          - name: timeout
-            value: "2"
-          - name: attempts
-            value: "3"
-          - name: single-request-reopen
-          - name: no-tld-query
+      {{- include "scenario-1.dnsConfig" . | nindent 6 }}
       containers:
-        - image: rg.fr-par.scw.cloud/devopsbeerer/api:1.0.0
-          imagePullPolicy: Always
-          name: api
+        - name: api
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
+            {{- include "scenario-1.containerSecurityContext" . | nindent 12 }}
             runAsUser: 1000
             runAsGroup: 1000
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
           env:
             - name: NODE_OPTIONS
-              value: "--max-old-space-size=96" # Limit memory usage
+              value: "--max-old-space-size=96"
           envFrom:
             - configMapRef:
-                name: api-config
+                name: {{ .Values.api.name }}-config
           ports:
-            - containerPort: 3000
+            - containerPort: {{ .Values.api.service.port }}
+              protocol: TCP
+              name: http
           resources:
-            requests:
-              memory: "64Mi"
-              cpu: "250m"
-            limits:
-              memory: "128Mi"
-              cpu: "500m"
+            {{- toYaml .Values.api.resources | nindent 12 }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -76,28 +58,26 @@ spec:
                 command: ["/bin/sh", "-c", "sleep 15"]
           livenessProbe:
             httpGet:
-              path: /health/liveness
-              port: 3000
-            initialDelaySeconds: 10
-            periodSeconds: 30
+              path: {{ .Values.api.healthCheck.liveness.path }}
+              port: {{ .Values.api.service.port }}
+            initialDelaySeconds: {{ .Values.api.healthCheck.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.liveness.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health/readiness
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
+              path: {{ .Values.api.healthCheck.readiness.path }}
+              port: {{ .Values.api.service.port }}
+            initialDelaySeconds: {{ .Values.api.healthCheck.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.readiness.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
-      # Graceful termination
       terminationGracePeriodSeconds: 30
-
       volumes:
-        # EmptyDir volumes for writable directories
         - name: tmp
           emptyDir: {}
         - name: node-cache
           emptyDir: {}
         - name: app-tmp
           emptyDir: {}
+{{- end }}

@@ -1,9 +1,14 @@
+{{- if .Values.api.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: api-config
+  name: {{ .Values.api.name }}-config
+  labels:
+    {{- include "scenario-1.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
 data:
-  KEYCLOAK_URL: http://sso-keycloak-headless.sso.svc.cluster.local:8080
-  KEYCLOAK_AUDIENCE: scenario-1-api
-  KEYCLOAK_REALM: devopsbeerer
-  NODE_ENV: development
+  KEYCLOAK_URL: {{ .Values.sso.url }}
+  KEYCLOAK_AUDIENCE: {{ .Values.api.config.audience }}
+  KEYCLOAK_REALM: {{ .Values.sso.realm }}
+  NODE_ENV: {{ .Values.api.config.nodeEnv }}
+{{- end }}

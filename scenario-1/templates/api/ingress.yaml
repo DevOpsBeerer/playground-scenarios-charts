@@ -1,27 +1,5 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: scenario-1-api
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    cert-manager.io/cluster-issuer: "ca-cluster-issuer"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-
-spec:
-  ingressClassName: nginx
-  tls:
-    - hosts:
-        - api.scenario1.devopsbeerer.local
-      secretName: api-tls
-  rules:
-    - host: "api.scenario1.devopsbeerer.local"
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: scenario-1-api
-                port:
-                  number: 3000
+{{- if and .Values.api.enabled .Values.api.ingress.enabled }}
+{{- $config := .Values.api.ingress }}
+{{- $_ := set $config "servicePort" .Values.api.service.port }}
+{{- include "scenario-1.ingress" (dict "component" "api" "config" $config "root" .) }}
+{{- end }}

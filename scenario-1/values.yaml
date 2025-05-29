@@ -1,123 +1,149 @@
-# Default values for scenario-1.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# DevopsBEERer Scenario 1 - Basic SPA with OIDC
+# Default values for scenario-1
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+global:
+  domain: devopsbeerer.local
+  environment: development
+  imageRegistry: rg.fr-par.scw.cloud/devopsbeerer
+  name: scenario-1
+
+# Common settings
 replicaCount: 1
-
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-image:
-  repository: nginx
-  # This sets the pull policy for images.
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
-
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-imagePullSecrets: []
-# This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Automatically mount a ServiceAccount's API credentials?
-  automount: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
+# Keycloak/SSO Configuration
+sso:
+  url: http://sso-keycloak-headless.sso.svc.cluster.local:8080
+  realm: devopsbeerer
+  publicUrl: https://sso.devopsbeerer.local
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
-podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
+# API Configuration
+api:
+  enabled: true
+  name: scenario-1-api
+  image:
+    repository: api
+    tag: "1.0.0"
+    pullPolicy: Always
 
-podSecurityContext: {}
-  # fsGroup: 2000
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "250m"
+    limits:
+      memory: "128Mi"
+      cpu: "500m"
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+  service:
+    port: 3000
+    type: ClusterIP
 
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
-service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
-  type: ClusterIP
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 80
+  ingress:
+    enabled: true
+    name: scenario-1-api
+    host: api.scenario1.devopsbeerer.local
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: "ca-cluster-issuer"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  config:
+    audience: scenario-1-api
+    nodeEnv: development
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+  healthCheck:
+    liveness:
+      path: /health/liveness
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readiness:
+      path: /health/readiness
+      initialDelaySeconds: 5
+      periodSeconds: 10
 
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
+# Frontend Configuration
+frontoffice:
+  enabled: true
+  name: scenario-1-app
+  image:
+    repository: frontoffice
+    tag: "2.0.0"
+    pullPolicy: Always
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  resources:
+    requests:
+      memory: "32Mi"
+      cpu: "125m"
+    limits:
+      memory: "64Mi"
+      cpu: "250m"
 
-# Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
+  service:
+    port: 8080
+    type: ClusterIP
 
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
+  ingress:
+    enabled: true
+    name: scenario-1-app
+    host: app.scenario1.devopsbeerer.local
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: "ca-cluster-issuer"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 
-nodeSelector: {}
+  config:
+    version: "v1.0.0"
+    environment: "playground"
+    organizationName: "DevopsDays"
+    clientId: scenario-1-app
+    scopes:
+      - openid
+      - profile
+      - email
+      - Beers.Read.All
+      - Beers.Read
 
-tolerations: []
+  healthCheck:
+    liveness:
+      path: /
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readiness:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 10
 
-affinity: {}
+# Security Configuration
+security:
+  networkPolicy:
+    enabled: true
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+# DNS Configuration
+dnsConfig:
+  options:
+    - name: ndots
+      value: "1"
+    - name: timeout
+      value: "2"
+    - name: attempts
+      value: "3"
+    - name: single-request-reopen
+    - name: no-tld-query

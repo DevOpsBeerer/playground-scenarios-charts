@@ -40,6 +40,9 @@ helm.sh/chart: {{ include "scenario-1.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/part-of: devopsbeerer
+scenario: {{ .Chart.Name }}
+environment: {{ .Values.global.environment }}
 {{- end }}
 
 {{/*
@@ -51,12 +54,93 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+Common ingress template
 */}}
-{{- define "scenario-1.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "scenario-1.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- define "scenario-1.ingress" -}}
+{{- $component := .component -}}
+{{- $config := .config -}}
+{{- $root := .root -}}
+{{- if $config.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $config.name }}
+  labels:
+    {{- include "scenario-1.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+  annotations:
+    {{- toYaml $config.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ $config.className }}
+  tls:
+    - hosts:
+        - {{ $config.host }}
+      secretName: {{ $component }}-tls
+  rules:
+    - host: {{ $config.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $config.name }}
+                port:
+                  number: {{ $config.servicePort }}
 {{- end }}
+{{- end }}
+
+{{/*
+Common security context
+*/}}
+{{- define "scenario-1.podSecurityContext" -}}
+runAsNonRoot: {{ .Values.security.podSecurityContext.runAsNonRoot }}
+seccompProfile:
+  type: {{ .Values.security.podSecurityContext.seccompProfile.type }}
+{{- end }}
+
+{{/*
+Common container security context
+*/}}
+{{- define "scenario-1.containerSecurityContext" -}}
+allowPrivilegeEscalation: {{ .Values.security.containerSecurityContext.allowPrivilegeEscalation }}
+readOnlyRootFilesystem: {{ .Values.security.containerSecurityContext.readOnlyRootFilesystem }}
+runAsNonRoot: {{ .Values.security.containerSecurityContext.runAsNonRoot }}
+capabilities:
+  drop:
+    {{- toYaml .Values.security.containerSecurityContext.capabilities.drop | nindent 4 }}
+seccompProfile:
+  type: {{ .Values.security.containerSecurityContext.seccompProfile.type }}
+{{- end }}
+
+{{/*
+Common DNS configuration
+*/}}
+{{- define "scenario-1.dnsConfig" -}}
+dnsPolicy: ClusterFirst
+dnsConfig:
+  options:
+    {{- toYaml .Values.dnsConfig.options | nindent 4 }}
+{{- end }}
+
+{{/*
+Generate API URLs based on environment
+*/}}
+{{- define "scenario-1.apiUrl" -}}
+{{- if eq .Values.global.environment "development" -}}
+https://{{ .Values.api.ingress.host }}
+{{- else -}}
+https://api.scenario1.{{ .Values.global.domain }}
+{{- end -}}
+{{- end }}
+
+{{/*
+Generate SSO URLs based on environment
+*/}}
+{{- define "scenario-1.ssoPublicUrl" -}}
+{{- if eq .Values.global.environment "development" -}}
+{{ .Values.sso.publicUrl }}
+{{- else -}}
+https://sso.{{ .Values.global.domain }}
+{{- end -}}
 {{- end }}

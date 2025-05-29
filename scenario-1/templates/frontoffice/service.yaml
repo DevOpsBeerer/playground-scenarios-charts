@@ -1,14 +1,19 @@
+{{- if .Values.frontoffice.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
+  name: {{ .Values.frontoffice.name }}
   labels:
-    app: scenario-1-app
-  name: scenario-1-app
+    {{- include "scenario-1.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontoffice
 spec:
+  type: {{ .Values.frontoffice.service.type }}
   ports:
-  - port: 8080
-    protocol: TCP
-    targetPort: 8080
-    name: http
+    - port: {{ .Values.frontoffice.service.port }}
+      targetPort: {{ .Values.frontoffice.service.port }}
+      protocol: TCP
+      name: http
   selector:
-    app: scenario-1-app
+    {{- include "scenario-1.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: frontoffice
+{{- end }}
