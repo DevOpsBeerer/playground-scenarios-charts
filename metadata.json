@@ -1,0 +1,9 @@
+{
+    "scenarios": [
+        {
+            "name": "Scenario 1",
+            "id": "scenario-1",
+            "description": "Basic OIDC Flow with SPA and API"
+        }
+    ]
+}
