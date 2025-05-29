@@ -141,7 +141,7 @@ backoffice:
 
   ingress:
     enabled: true
-    name: scenario-2-app
+    name: scenario-2-admin
     host: admin.scenario2.devopsbeerer.local
     className: nginx
     annotations:
@@ -154,7 +154,7 @@ backoffice:
     version: "v1.0.0"
     environment: "playground"
     organizationName: "DevopsDays"
-    clientId: scenario-2-app
+    clientId: scenario-2-admin
     scopes:
       - openid
       - profile
