@@ -7,5 +7,5 @@ metadata:
     {{- include "scenario-2.labels" . | nindent 4 }}
     app.kubernetes.io/component: frontoffice
 data:
-  KEYCLOAK_ISSUER: "{{ include "scenario-2.ssoPublicUrl" . }}/realms/{{ .Values.sso.realm }}",
+  KEYCLOAK_ISSUER: "{{ include "scenario-2.ssoPublicUrl" . }}/realms/{{ .Values.sso.realm }}"
 {{- end }}
