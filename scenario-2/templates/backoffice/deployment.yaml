@@ -39,21 +39,6 @@ spec:
               name: http
           resources:
             {{- toYaml .Values.backoffice.resources | nindent 12 }}
-          volumeMounts:
-            - name: config
-              mountPath: "/usr/share/nginx/html/config.json"
-              subPath: "config.json"
-              readOnly: true
-            - name: config
-              mountPath: "/usr/share/nginx/html/auth.json"
-              subPath: "auth.json"
-              readOnly: true
-            - name: nginx-cache
-              mountPath: /var/cache/nginx
-            - name: nginx-run
-              mountPath: /var/run
-            - name: nginx-tmp
-              mountPath: /tmp
           livenessProbe:
             httpGet:
               path: {{ .Values.backoffice.healthCheck.liveness.path }}
@@ -70,19 +55,4 @@ spec:
             periodSeconds: {{ .Values.backoffice.healthCheck.readiness.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
-      volumes:
-        - name: config
-          configMap:
-            name: {{ .Values.backoffice.name }}-config
-            items:
-              - key: "config.json"
-                path: "config.json"
-              - key: "auth.json"
-                path: "auth.json"
-        - name: nginx-cache
-          emptyDir: {}
-        - name: nginx-run
-          emptyDir: {}
-        - name: nginx-tmp
-          emptyDir: {}
 {{- end }}
